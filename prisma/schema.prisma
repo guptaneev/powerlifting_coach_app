@@ -1,0 +1,68 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Coach {
+  id       String   @id @default(cuid())
+  name     String
+  email    String   @unique
+  password String
+  clients  Client[]
+}
+
+model Client {
+  id      String        @id @default(cuid())
+  name    String
+  coachId String
+  coach   Coach         @relation(fields: [coachId], references: [id])
+  blocks  TrainingBlock[]
+}
+
+model TrainingBlock {
+  id       String    @id @default(cuid())
+  name     String
+  startDate DateTime
+  endDate   DateTime
+  clientId  String
+  client    Client    @relation(fields: [clientId], references: [id])
+  weeks     Week[]
+}
+
+model Week {
+  id              String        @id @default(cuid())
+  weekNumber      Int
+  trainingBlockId String
+  trainingBlock   TrainingBlock @relation(fields: [trainingBlockId], references: [id])
+  workouts        Workout[]
+}
+
+model Workout {
+  id       String     @id @default(cuid())
+  date     DateTime
+  weekId   String
+  week     Week       @relation(fields: [weekId], references: [id])
+  exercises Exercise[]
+}
+
+model Exercise {
+  id        String @id @default(cuid())
+  name      String
+  workoutId String
+  workout   Workout @relation(fields: [workoutId], references: [id])
+  sets      Set[]
+}
+
+model Set {
+  id         String   @id @default(cuid())
+  weight     Float
+  reps       Int
+  rpe        Float?
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+}
+
