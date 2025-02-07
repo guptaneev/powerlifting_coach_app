@@ -1,101 +1,231 @@
-import Image from "next/image";
+"use client"
+
+import { useState, useEffect } from "react"
+import Link from "next/link"
+
+interface Client {
+  id: string
+  name: string
+}
+
+interface Coach {
+  id: string
+  name: string
+  email: string
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [clients, setClients] = useState<Client[]>([])
+  const [coaches, setCoaches] = useState<Coach[]>([])
+  const [selectedCoachId, setSelectedCoachId] = useState<string>("")
+  const [newClientName, setNewClientName] = useState("")
+  const [newCoachName, setNewCoachName] = useState("")
+  const [newCoachEmail, setNewCoachEmail] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  useEffect(() => {
+    fetchCoaches()
+  }, [])
+
+  useEffect(() => {
+    if (selectedCoachId) {
+      fetchClients()
+    }
+  }, [selectedCoachId])
+
+  const fetchCoaches = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/coaches")
+      if (!response.ok) {
+        throw new Error("Failed to fetch coaches")
+      }
+      const data = await response.json()
+      setCoaches(data)
+      if (data.length > 0) {
+        setSelectedCoachId(data[0].id)
+      }
+    } catch (err) {
+      setError("Failed to load coaches. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchClients = async () => {
+    if (!selectedCoachId) return
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/clients?coachId=${selectedCoachId}`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch clients")
+      }
+      const data = await response.json()
+      setClients(data)
+    } catch (err) {
+      setError("Failed to load clients. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAddClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedCoachId) {
+      setError("Please select a coach first")
+      return
+    }
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newClientName, coachId: selectedCoachId }),
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to add client")
+      }
+      setNewClientName("")
+      fetchClients()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add client. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAddCoach = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/coaches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCoachName, email: newCoachEmail }),
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to add coach")
+      }
+      setNewCoachName("")
+      setNewCoachEmail("")
+      fetchCoaches()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add coach. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Powerlifting Coach Dashboard</h1>
+      {error && <p className="text-red-500">{error}</p>}
+
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-2xl font-semibold mb-4">Add New Coach</h2>
+        <form onSubmit={handleAddCoach} className="space-y-4">
+          <div>
+            <label htmlFor="coach-name" className="block mb-1">
+              Coach Name:
+            </label>
+            <input
+              id="coach-name"
+              type="text"
+              value={newCoachName}
+              onChange={(e) => setNewCoachName(e.target.value)}
+              className="border p-2 rounded w-full"
+              required
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+          <div>
+            <label htmlFor="coach-email" className="block mb-1">
+              Coach Email:
+            </label>
+            <input
+              id="coach-email"
+              type="email"
+              value={newCoachEmail}
+              onChange={(e) => setNewCoachEmail(e.target.value)}
+              className="border p-2 rounded w-full"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-green-500 text-white p-2 rounded w-full disabled:bg-green-300"
+            disabled={isLoading}
           >
-            Read our docs
-          </a>
+            {isLoading ? "Adding..." : "Add Coach"}
+          </button>
+        </form>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-2xl font-semibold mb-4">Manage Clients</h2>
+        <div className="mb-4">
+          <label htmlFor="coach-select" className="block mb-2">
+            Select Coach:
+          </label>
+          <select
+            id="coach-select"
+            value={selectedCoachId}
+            onChange={(e) => setSelectedCoachId(e.target.value)}
+            className="border p-2 rounded w-full"
+          >
+            {coaches.map((coach) => (
+              <option key={coach.id} value={coach.id}>
+                {coach.name}
+              </option>
+            ))}
+          </select>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <form onSubmit={handleAddClient} className="space-y-4">
+          <div>
+            <label htmlFor="client-name" className="block mb-1">
+              New Client Name:
+            </label>
+            <input
+              id="client-name"
+              type="text"
+              value={newClientName}
+              onChange={(e) => setNewClientName(e.target.value)}
+              className="border p-2 rounded w-full"
+              disabled={isLoading}
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-blue-500 text-white p-2 rounded w-full disabled:bg-blue-300"
+            disabled={isLoading || !selectedCoachId}
+          >
+            {isLoading ? "Adding..." : "Add Client"}
+          </button>
+        </form>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-2xl font-semibold mb-4">Clients</h2>
+        {isLoading && <p>Loading...</p>}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {clients.map((client) => (
+            <div key={client.id} className="border p-4 rounded shadow">
+              <h3 className="text-xl font-semibold mb-2">{client.name}</h3>
+              <Link href={`/client/${client.id}`} className="text-blue-500 hover:underline">
+                View Details
+              </Link>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
-  );
+  )
 }
+

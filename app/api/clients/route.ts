@@ -11,25 +11,43 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Coach ID is required" }, { status: 400 })
   }
 
-  const clients = await prisma.client.findMany({
-    where: { coachId },
-    include: { blocks: true },
-  })
-
-  return NextResponse.json(clients)
+  try {
+    const clients = await prisma.client.findMany({
+      where: { coachId },
+      include: { blocks: true },
+    })
+    return NextResponse.json(clients)
+  } catch (error) {
+    console.error("Error fetching clients:", error)
+    return NextResponse.json({ error: "Failed to fetch clients" }, { status: 500 })
+  }
 }
 
 export async function POST(request: Request) {
-  const { name, coachId } = await request.json()
+  try {
+    const { name, coachId } = await request.json()
 
-  if (!name || !coachId) {
-    return NextResponse.json({ error: "Name and Coach ID are required" }, { status: 400 })
+    if (!name || !coachId) {
+      return NextResponse.json({ error: "Name and Coach ID are required" }, { status: 400 })
+    }
+
+    // Check if the coach exists
+    const coach = await prisma.coach.findUnique({
+      where: { id: coachId },
+    })
+
+    if (!coach) {
+      return NextResponse.json({ error: "Coach not found" }, { status: 404 })
+    }
+
+    const client = await prisma.client.create({
+      data: { name, coachId },
+    })
+
+    return NextResponse.json(client)
+  } catch (error) {
+    console.error("Error creating client:", error)
+    return NextResponse.json({ error: "Failed to create client" }, { status: 500 })
   }
-
-  const client = await prisma.client.create({
-    data: { name, coachId },
-  })
-
-  return NextResponse.json(client)
 }
 

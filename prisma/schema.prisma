@@ -16,20 +16,20 @@ model Coach {
 }
 
 model Client {
-  id      String        @id @default(cuid())
+  id      String   @id @default(cuid())
   name    String
   coachId String
-  coach   Coach         @relation(fields: [coachId], references: [id])
+  coach   Coach    @relation(fields: [coachId], references: [id])
   blocks  TrainingBlock[]
 }
 
 model TrainingBlock {
-  id       String    @id @default(cuid())
+  id       String   @id @default(cuid())
   name     String
   startDate DateTime
   endDate   DateTime
   clientId  String
-  client    Client    @relation(fields: [clientId], references: [id])
+  client    Client   @relation(fields: [clientId], references: [id])
   weeks     Week[]
 }
 

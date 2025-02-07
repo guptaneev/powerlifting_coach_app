@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
   const trainingBlocks = await prisma.trainingBlock.findMany({
     where: { clientId },
-    include: { weeks: { include: { workouts: { include: { exercises: { include: { sets: true } } } } } } },
+    orderBy: { startDate: "desc" },
   })
 
   return NextResponse.json(trainingBlocks)
