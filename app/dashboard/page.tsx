@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth/next"
+import { authOptions } from "../api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
 import { PrismaClient } from "@prisma/client"
 import Link from "next/link"
@@ -6,7 +7,7 @@ import Link from "next/link"
 const prisma = new PrismaClient()
 
 export default async function Dashboard() {
-  const session = await getServerSession()
+  const session = await getServerSession(authOptions)
 
   if (!session || !session.user) {
     redirect("/signin")

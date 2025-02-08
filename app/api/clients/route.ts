@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
 const prisma = new PrismaClient()
 
@@ -25,15 +27,19 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { name, coachId } = await request.json()
-
-    if (!name || !coachId) {
-      return NextResponse.json({ error: "Name and Coach ID are required" }, { status: 400 })
+    const session = await getServerSession(authOptions)
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check if the coach exists
+    const { name } = await request.json()
+
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 })
+    }
+
     const coach = await prisma.coach.findUnique({
-      where: { id: coachId },
+      where: { email: session.user.email as string },
     })
 
     if (!coach) {
@@ -41,7 +47,7 @@ export async function POST(request: Request) {
     }
 
     const client = await prisma.client.create({
-      data: { name, coachId },
+      data: { name, coachId: coach.id },
     })
 
     return NextResponse.json(client)

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import type React from "react"
 
 interface Client {
   id: string
